@@ -1,0 +1,1 @@
+Data Science involves data analysis, statistics, data visualization, and predictive modeling. Python and R are widely used in data science projects.

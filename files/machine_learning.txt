@@ -1,0 +1,1 @@
+Machine Learning is a field of artificial intelligence that focuses on building systems that learn from data. Algorithms like linear regression, decision trees, and neural networks are commonly used for predictive modeling.

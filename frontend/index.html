@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SEFS | Neural Intelligence Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.21.1/cytoscape.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00d2ff;
+            --neon-green: #39ff14;
+            --neon-orange: #ff6e31;
+            --bg-dark: #020b16;
+            --panel-bg: rgba(10, 25, 47, 0.9);
+        }
+
+        body {
+            margin: 0; background: var(--bg-dark);
+            color: #e6f1ff; font-family: 'Rajdhani', sans-serif;
+            overflow: hidden; height: 100vh;
+            background-image: 
+                linear-gradient(rgba(0, 210, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 210, 255, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        #cy { width: 100vw; height: 100vh; z-index: 1; }
+
+        .glass-panel {
+            position: absolute; z-index: 10;
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 210, 255, 0.3);
+            border-radius: 4px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        .hud-header {
+            top: 20px; left: 20px; width: 320px; padding: 20px;
+            border-left: 4px solid var(--neon-blue);
+        }
+
+        .hud-header h1 {
+            font-family: 'Orbitron', sans-serif;
+            margin: 0; font-size: 1.2rem; letter-spacing: 2px;
+            color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue);
+        }
+
+        .search-box {
+            width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #112240;
+            padding: 10px; color: var(--neon-blue); font-family: 'Rajdhani';
+            outline: none; box-sizing: border-box; margin-top: 15px;
+        }
+
+        .sidebar {
+            top: 20px; right: 20px; width: 340px; height: calc(100vh - 40px);
+            padding: 25px; display: none; box-sizing: border-box;
+            transform: translateX(400px);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow-y: auto;
+        }
+        .sidebar.active { display: block; transform: translateX(0); }
+
+        .meta-label { color: var(--neon-blue); font-size: 0.75rem; text-transform: uppercase; margin-top: 20px; display: block; font-weight: bold; letter-spacing: 1px; }
+        .meta-value { font-size: 1rem; color: #fff; word-break: break-all; }
+
+        .summary-section {
+            margin-top: 10px; border: 1px solid rgba(57, 255, 20, 0.2);
+            background: rgba(0, 0, 0, 0.4); padding: 15px;
+            border-radius: 4px; position: relative;
+        }
+        .summary-section::after {
+            content: "AI_SUMMARY_v1.2";
+            position: absolute; top: -8px; right: 10px;
+            background: var(--bg-dark); padding: 0 5px;
+            font-size: 0.6rem; color: var(--neon-green);
+        }
+        .summary-box {
+            font-size: 0.95rem; color: #d1d1d1; line-height: 1.6;
+            margin: 0; min-height: 60px; font-style: italic;
+        }
+
+        .btn-action {
+            width: 100%; margin-top: 25px; padding: 12px;
+            background: transparent; border: 1px solid var(--neon-blue);
+            color: var(--neon-blue); cursor: pointer; font-family: 'Orbitron';
+            text-transform: uppercase; transition: 0.3s;
+        }
+        .btn-action:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 20px var(--neon-blue); }
+
+        /* CONTEXT MENU STYLING */
+        #context-menu {
+            display: none; position: absolute; z-index: 1000;
+            background: var(--panel-bg); border: 1px solid var(--neon-blue);
+            padding: 5px; border-radius: 4px; backdrop-filter: blur(10px);
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+        }
+        .menu-item {
+            padding: 8px 15px; cursor: pointer; color: white; font-size: 0.85rem;
+            text-transform: uppercase; font-family: 'Orbitron'; border-bottom: 1px solid rgba(0, 210, 255, 0.1);
+        }
+        .menu-item:last-child { border-bottom: none; }
+        .menu-item:hover { background: var(--neon-blue); color: black; }
+
+        .node-hint {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 210, 255, 0.1); padding: 5px 20px;
+            border: 1px solid var(--neon-blue); font-size: 0.8rem; z-index: 10;
+        }
+        .cursor { display: inline-block; width: 8px; height: 15px; background: var(--neon-green); animation: blink 1s infinite; vertical-align: middle; }
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div class="glass-panel hud-header">
+        <h1>SEFS NEURAL INTERFACE</h1>
+        <input type="text" class="search-box" id="search" placeholder="LOCATE DATA_NODE...">
+        <div style="margin-top: 15px; display: flex; gap: 10px; font-size: 0.7rem;">
+            <span><span style="color:var(--neon-orange)">●</span> CORE</span>
+            <span><span style="color:var(--neon-blue)">●</span> CLUSTER</span>
+            <span><span style="color:var(--neon-green)">●</span> DATA</span>
+        </div>
+    </div>
+
+    <div id="context-menu">
+        <div class="menu-item" id="menu-lock">🔒 MAKE PRIVATE</div>
+        <div class="menu-item" id="menu-unlock">🔓 REMOVE PRIVACY</div>
+    </div>
+
+    <div class="glass-panel sidebar" id="sidebar">
+        <h2 id="side-title" style="font-family: 'Orbitron'; font-size: 1.1rem; color: #00d2ff; margin: 0;">ANALYSIS</h2>
+        <div style="height: 1px; background: linear-gradient(90deg, #00d2ff, transparent); margin: 15px 0;"></div>
+        
+        <span class="meta-label">CLASSIFICATION</span>
+        <span class="meta-value" id="side-type">...</span>
+
+        <span class="meta-label">SEMANTIC_INSIGHT</span>
+        <div class="summary-section">
+            <p class="summary-box" id="side-summary"></p>
+        </div>
+
+        <span class="meta-label">LOCATION</span>
+        <span class="meta-value" id="side-path" style="font-size: 0.75rem; opacity: 0.8;">...</span>
+
+        <span class="meta-label">TIMESTAMP</span>
+        <span class="meta-value" id="side-meta">...</span>
+
+        <button class="btn-action" id="open-btn">REVEAL IN OS</button>
+    </div>
+
+    <div id="cy"></div>
+    <div class="node-hint">CMD: TAP CLUSTER(COLLAPSE) | RIGHT-CLICK FILE(SECURITY)</div>
+
+    <script>
+        let cy;
+        let typingTimer;
+        let currentAuthKey = "";
+        let selectedNode = null;
+
+        // Neural Flow Animation (Moving Pulse)
+        function startNeuralFlow() {
+            let offset = 0;
+            setInterval(() => {
+                offset--; 
+                if (cy) {
+                    cy.edges().style('line-dash-offset', offset);
+                }
+            }, 30);
+        }
+
+        function typeWriter(text, elementId) {
+            clearTimeout(typingTimer);
+            const element = document.getElementById(elementId);
+            element.innerHTML = "";
+            let i = 0;
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML = text.substring(0, i + 1) + '<span class="cursor"></span>';
+                    i++;
+                    typingTimer = setTimeout(type, 20);
+                } else {
+                    element.innerHTML = text;
+                }
+            }
+            type();
+        }
+
+        async function initGraph() {
+            try {
+                const response = await fetch('/graph_data.json');
+                const elements = await response.json();
+
+                cy = cytoscape({
+                    container: document.getElementById('cy'),
+                    elements: elements,
+                    style: [
+                        { selector: 'node', style: { 'background-color': 'data(color)', 'label': 'data(label)', 'color': '#8892b0', 'font-family': 'Rajdhani', 'font-size': '10px', 'text-valign': 'bottom', 'text-margin-y': '6px', 'width': 22, 'height': 22, 'border-width': 2, 'border-color': '#020b16' } },
+                        { selector: 'node[type="root"]', style: { 'width': 45, 'height': 45, 'color': '#fff' } },
+                        { selector: 'node[type="folder"]', style: { 'shape': 'diamond', 'width': 30, 'height': 30 } },
+                        { selector: 'edge', style: { 
+                            'width': 1.5, 'line-color': 'rgba(0, 210, 255, 0.3)', 'curve-style': 'bezier', 
+                            'target-arrow-shape': 'triangle', 'target-arrow-color': 'rgba(0, 210, 255, 0.3)',
+                            'line-dash-pattern': [6, 3], 'line-dash-offset': 0
+                        } }
+                    ],
+                    layout: { name: 'cose', animate: true, nodeRepulsion: 7000, padding: 50 }
+                });
+
+                // --- RIGHT-CLICK HANDLER ---
+                cy.on('cxttap', 'node[type="file"]', function(evt){
+                    selectedNode = evt.target;
+                    const menu = document.getElementById('context-menu');
+                    menu.style.display = 'block';
+                    menu.style.left = evt.renderedPosition.x + 'px';
+                    menu.style.top = evt.renderedPosition.y + 'px';
+                });
+
+                cy.on('tap', function() {
+                    document.getElementById('context-menu').style.display = 'none';
+                });
+
+                // --- LEFT-CLICK HANDLER ---
+                cy.on('tap', 'node', function(evt){
+                    const node = evt.target;
+                    if (node.data('locked')) {
+                        const pass = prompt("ENCRYPTION KEY REQUIRED FOR NODE: " + node.data('id'));
+                        if (pass !== node.data('password')) {
+                            alert("ACCESS DENIED: AUTHENTICATION FAILURE");
+                            return; 
+                        }
+                        currentAuthKey = pass;
+                    } else {
+                        currentAuthKey = "";
+                    }
+
+                    const sidebar = document.getElementById('sidebar');
+                    sidebar.classList.add('active');
+                    document.getElementById('side-title').innerText = node.data('label').split('] ').pop().toUpperCase();
+                    document.getElementById('side-type').innerText = node.data('type').toUpperCase();
+                    
+                    // Fixed Metadata Display
+                    document.getElementById('side-path').innerText = node.data('path') || 'VIRTUAL_NODE';
+                    document.getElementById('side-meta').innerText = node.data('created') || 'N/A';
+                    
+                    const summary = node.data('summary') || "No semantic content detected.";
+                    typeWriter(summary, 'side-summary');
+
+                    document.getElementById('open-btn').onclick = () => {
+                        if(node.data('type') === 'file') {
+                            fetch(`/open-folder/${node.data('id')}?password=${currentAuthKey}`);
+                        }
+                    };
+                    cy.animate({ center: { eles: node }, zoom: 1.4 }, { duration: 600 });
+                });
+
+                cy.on('tap', 'node[type="folder"]', function(evt){
+                    const node = evt.target;
+                    const connected = node.connectedEdges().connectedNodes().filter('node[type="file"]');
+                    if (connected.visible()) connected.hide(); else connected.show();
+                });
+
+                document.getElementById('search').addEventListener('input', (e) => {
+                    const val = e.target.value.toLowerCase();
+                    cy.nodes().forEach(n => n.style('opacity', n.data('label').toLowerCase().includes(val) ? 1 : 0.1));
+                });
+            } catch (err) { console.error("Neural Data Error:", err); }
+        }
+
+        // --- DYNAMIC SECURITY ACTIONS ---
+        document.getElementById('menu-lock').onclick = async () => {
+            const pass = prompt("CREATE SECURITY PASSWORD FOR: " + selectedNode.id());
+            if (pass) {
+                const res = await fetch('/lock-node', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ filename: selectedNode.id(), password: pass })
+                });
+                if (res.ok) {
+                    document.getElementById('context-menu').style.display = 'none';
+                    location.reload(); // Force instant UI sync with backend registry
+                }
+            }
+        };
+
+// Handle "Remove Privacy" logic
+document.getElementById('menu-unlock').onclick = async () => {
+    const pass = prompt("ENTER CURRENT PASSWORD TO REMOVE PRIVACY:");
+    if (pass) {
+        const res = await fetch('/unlock-node', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ filename: selectedNode.id(), password: pass })
+        });
+        
+        if (res.ok) {
+            document.getElementById('context-menu').style.display = 'none';
+            // FORCE REFRESH: This forces the UI to fetch the updated green status
+            location.reload(); 
+        } else {
+            alert("INVALID PASSWORD: ACCESS DENIED");
+        }
+    }
+};
+
+        setInterval(async () => {
+            try {
+                const res = await fetch('/graph_data.json');
+                const data = await res.json();
+                if (cy && cy.elements().length !== (data.nodes.length + data.edges.length)) {
+                    cy.json(data);
+                    cy.layout({ name: 'cose', animate: true }).run();
+                }
+            } catch (e) { }
+        }, 10000);
+
+        window.onload = () => {
+            initGraph();
+            startNeuralFlow();
+        };
+    </script>
+</body>
+</html>
