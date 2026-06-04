@@ -1,6 +1,6 @@
 import PyPDF2
 import pytesseract
-import cv2
+from PIL import Image
 import os
 from docx import Document
 from pptx import Presentation
@@ -56,10 +56,10 @@ def read_pptx_file(path):
 def read_image_file(path):
     """Winner Feature: Extracts text from PNG/JPG using OCR."""
     try:
-        img = cv2.imread(path)
-        # Convert to grayscale for better OCR accuracy
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        return pytesseract.image_to_string(gray)
+        with Image.open(path) as img:
+            # Convert to grayscale for better OCR accuracy
+            gray = img.convert('L')
+            return pytesseract.image_to_string(gray)
     except: return ""
 
 def read_file(path):

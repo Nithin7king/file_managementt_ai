@@ -1,8 +1,8 @@
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
-# Upgrading to all-MiniLM-L6-v2 to fit within Render's 512MB Free Tier limits
-# Note: This will download a ~80MB model on first run.
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# Initialize the model using FastEmbed (runs on ONNX Runtime, avoiding heavy PyTorch RAM usage)
+# This will download the optimized/quantized version of all-MiniLM-L6-v2 on first run (~45MB).
+model = TextEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 def get_embedding(text):
     """
@@ -11,6 +11,6 @@ def get_embedding(text):
     if not text or not text.strip():
         return None
 
-    # Normalizing text slightly helps embedding quality
-    embedding = model.encode(text.strip())
-    return embedding
+    # FastEmbed expects a list of texts and returns a generator of embeddings
+    embeddings = list(model.embed([text.strip()]))
+    return embeddings[0]

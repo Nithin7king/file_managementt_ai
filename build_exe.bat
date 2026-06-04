@@ -36,7 +36,8 @@ pyinstaller ^
   --add-data "frontend;frontend" ^
   --add-data "graph_data.json;." ^
   --add-data "security_registry.json;." ^
-  --hidden-import="sentence_transformers" ^
+  --hidden-import="fastembed" ^
+  --hidden-import="onnxruntime" ^
   --hidden-import="hdbscan" ^
   --hidden-import="sklearn" ^
   --hidden-import="sumy" ^
@@ -44,14 +45,11 @@ pyinstaller ^
   --hidden-import="docx" ^
   --hidden-import="pptx" ^
   --hidden-import="pytesseract" ^
-  --hidden-import="cv2" ^
   --hidden-import="flask" ^
   --hidden-import="watchdog" ^
   --hidden-import="tqdm" ^
-  --collect-all="sentence_transformers" ^
-  --collect-all="transformers" ^
-  --collect-all="tokenizers" ^
-  --collect-all="huggingface_hub" ^
+  --collect-all="fastembed" ^
+  --collect-all="onnxruntime" ^
   --collect-all="sumy" ^
   launcher.py
 
