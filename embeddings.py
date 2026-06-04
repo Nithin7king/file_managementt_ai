@@ -1,8 +1,8 @@
 from sentence_transformers import SentenceTransformer
 
-# Upgrading to all-mpnet-base-v2 for maximum semantic accuracy
-# Note: This will download a ~420MB model on first run.
-model = SentenceTransformer('all-mpnet-base-v2')
+# Upgrading to all-MiniLM-L6-v2 to fit within Render's 512MB Free Tier limits
+# Note: This will download a ~80MB model on first run.
+model = SentenceTransformer('all-MiniLM-L6-v2')
 
 def get_embedding(text):
     """
