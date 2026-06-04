@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SEFS Neural Intelligence Interface — Semantic file organization powered by AI clustering and MPNet embeddings.">
     <title>SEFS | Neural Intelligence Interface</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.21.1/cytoscape.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
@@ -10,17 +12,20 @@
             --neon-blue: #00d2ff;
             --neon-green: #39ff14;
             --neon-orange: #ff6e31;
+            --neon-red: #ff3333;
             --bg-dark: #020b16;
-            --panel-bg: rgba(10, 25, 47, 0.9);
+            --panel-bg: rgba(10, 25, 47, 0.92);
         }
+
+        * { box-sizing: border-box; }
 
         body {
             margin: 0; background: var(--bg-dark);
             color: #e6f1ff; font-family: 'Rajdhani', sans-serif;
             overflow: hidden; height: 100vh;
             background-image: 
-                linear-gradient(rgba(0, 210, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 210, 255, 0.05) 1px, transparent 1px);
+                linear-gradient(rgba(0, 210, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 210, 255, 0.04) 1px, transparent 1px);
             background-size: 50px 50px;
         }
 
@@ -35,23 +40,69 @@
             box-shadow: 0 0 30px rgba(0,0,0,0.8);
         }
 
+        /* ─── HUD HEADER ─── */
         .hud-header {
-            top: 20px; left: 20px; width: 320px; padding: 20px;
+            top: 20px; left: 20px; width: 330px; padding: 20px;
             border-left: 4px solid var(--neon-blue);
         }
-
         .hud-header h1 {
             font-family: 'Orbitron', sans-serif;
-            margin: 0; font-size: 1.2rem; letter-spacing: 2px;
+            margin: 0; font-size: 1.15rem; letter-spacing: 2px;
             color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue);
         }
+        .hud-sub { font-size: 0.7rem; color: #8892b0; margin-top: 4px; letter-spacing: 1px; }
 
         .search-box {
             width: 100%; background: rgba(0,0,0,0.5); border: 1px solid #112240;
             padding: 10px; color: var(--neon-blue); font-family: 'Rajdhani';
-            outline: none; box-sizing: border-box; margin-top: 15px;
+            outline: none; margin-top: 15px; border-radius: 2px;
+        }
+        .search-box:focus { border-color: var(--neon-blue); box-shadow: 0 0 8px rgba(0,210,255,0.3); }
+
+        .legend { margin-top: 15px; display: flex; gap: 12px; font-size: 0.7rem; }
+
+        /* ─── UPLOAD PANEL ─── */
+        .upload-panel {
+            bottom: 20px; left: 20px; width: 330px; padding: 18px;
+            border-left: 4px solid var(--neon-green);
+        }
+        .upload-title {
+            font-family: 'Orbitron', sans-serif; font-size: 0.8rem;
+            color: var(--neon-green); letter-spacing: 2px; margin: 0 0 12px 0;
+            text-shadow: 0 0 8px var(--neon-green);
+        }
+        #drop-zone {
+            border: 2px dashed rgba(57, 255, 20, 0.4);
+            border-radius: 4px; padding: 18px 10px; text-align: center;
+            cursor: pointer; transition: all 0.3s;
+            background: rgba(57, 255, 20, 0.03);
+            font-size: 0.85rem; color: #8892b0;
+        }
+        #drop-zone:hover, #drop-zone.drag-over {
+            border-color: var(--neon-green);
+            background: rgba(57, 255, 20, 0.08);
+            color: var(--neon-green);
+            box-shadow: 0 0 15px rgba(57, 255, 20, 0.2);
+        }
+        #drop-zone .drop-icon { font-size: 1.8rem; display: block; margin-bottom: 6px; }
+        #file-input { display: none; }
+        .file-types { font-size: 0.65rem; color: #4a5568; margin-top: 8px; letter-spacing: 1px; }
+        
+        #upload-status {
+            margin-top: 10px; font-size: 0.8rem; min-height: 20px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--neon-green); flex-shrink: 0;
+        }
+        .status-dot.pulse { animation: pulse-glow 1s infinite; }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; box-shadow: 0 0 6px var(--neon-green); }
+            50% { opacity: 0.3; box-shadow: none; }
         }
 
+        /* ─── SIDEBAR ─── */
         .sidebar {
             top: 20px; right: 20px; width: 340px; height: calc(100vh - 40px);
             padding: 25px; display: none; box-sizing: border-box;
@@ -81,14 +132,19 @@
         }
 
         .btn-action {
-            width: 100%; margin-top: 25px; padding: 12px;
+            width: 100%; margin-top: 15px; padding: 12px;
             background: transparent; border: 1px solid var(--neon-blue);
             color: var(--neon-blue); cursor: pointer; font-family: 'Orbitron';
-            text-transform: uppercase; transition: 0.3s;
+            text-transform: uppercase; transition: 0.3s; font-size: 0.75rem;
+            border-radius: 2px;
         }
         .btn-action:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 20px var(--neon-blue); }
+        .btn-download {
+            border-color: var(--neon-green); color: var(--neon-green);
+        }
+        .btn-download:hover { background: var(--neon-green); box-shadow: 0 0 20px var(--neon-green); }
 
-        /* CONTEXT MENU STYLING */
+        /* ─── CONTEXT MENU ─── */
         #context-menu {
             display: none; position: absolute; z-index: 1000;
             background: var(--panel-bg); border: 1px solid var(--neon-blue);
@@ -104,32 +160,70 @@
 
         .node-hint {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0, 210, 255, 0.1); padding: 5px 20px;
-            border: 1px solid var(--neon-blue); font-size: 0.8rem; z-index: 10;
+            background: rgba(0, 210, 255, 0.08); padding: 5px 20px;
+            border: 1px solid rgba(0,210,255,0.3); font-size: 0.75rem; z-index: 10;
+            white-space: nowrap;
         }
+
+        /* ─── DIVIDER ─── */
+        .panel-divider { height: 1px; background: linear-gradient(90deg, var(--neon-blue), transparent); margin: 15px 0; }
+
         .cursor { display: inline-block; width: 8px; height: 15px; background: var(--neon-green); animation: blink 1s infinite; vertical-align: middle; }
         @keyframes blink { 50% { opacity: 0; } }
+
+        /* ─── TOAST ─── */
+        #toast {
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: var(--panel-bg); border: 1px solid var(--neon-blue);
+            padding: 10px 24px; font-family: 'Orbitron'; font-size: 0.75rem;
+            color: var(--neon-blue); opacity: 0; transition: all 0.4s;
+            z-index: 9999; border-radius: 2px; pointer-events: none;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ─── SCROLLBAR ─── */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,210,255,0.3); border-radius: 2px; }
     </style>
 </head>
 <body>
+
+    <!-- HUD Header -->
     <div class="glass-panel hud-header">
         <h1>SEFS NEURAL INTERFACE</h1>
+        <div class="hud-sub">SEMANTIC ENTROPY FILE SYSTEM</div>
         <input type="text" class="search-box" id="search" placeholder="LOCATE DATA_NODE...">
-        <div style="margin-top: 15px; display: flex; gap: 10px; font-size: 0.7rem;">
+        <div class="legend">
             <span><span style="color:var(--neon-orange)">●</span> CORE</span>
             <span><span style="color:var(--neon-blue)">●</span> CLUSTER</span>
             <span><span style="color:var(--neon-green)">●</span> DATA</span>
+            <span><span style="color:var(--neon-red)">●</span> PRIVATE</span>
         </div>
     </div>
 
+    <!-- Upload Panel -->
+    <div class="glass-panel upload-panel">
+        <h3 class="upload-title">⬆ UPLOAD DATA_NODES</h3>
+        <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <span class="drop-icon">🧠</span>
+            DROP FILES HERE or CLICK TO BROWSE
+        </div>
+        <div class="file-types">SUPPORTED: PDF · TXT · DOCX · PPTX · PNG · JPG · JPEG</div>
+        <input type="file" id="file-input" multiple accept=".pdf,.txt,.docx,.pptx,.png,.jpg,.jpeg">
+        <div id="upload-status"></div>
+    </div>
+
+    <!-- Context Menu -->
     <div id="context-menu">
         <div class="menu-item" id="menu-lock">🔒 MAKE PRIVATE</div>
         <div class="menu-item" id="menu-unlock">🔓 REMOVE PRIVACY</div>
     </div>
 
+    <!-- Sidebar -->
     <div class="glass-panel sidebar" id="sidebar">
         <h2 id="side-title" style="font-family: 'Orbitron'; font-size: 1.1rem; color: #00d2ff; margin: 0;">ANALYSIS</h2>
-        <div style="height: 1px; background: linear-gradient(90deg, #00d2ff, transparent); margin: 15px 0;"></div>
+        <div class="panel-divider"></div>
         
         <span class="meta-label">CLASSIFICATION</span>
         <span class="meta-value" id="side-type">...</span>
@@ -146,25 +240,41 @@
         <span class="meta-value" id="side-meta">...</span>
 
         <button class="btn-action" id="open-btn">REVEAL IN OS</button>
+        <button class="btn-action btn-download" id="download-btn" style="display:none;">⬇ DOWNLOAD FILE</button>
     </div>
 
     <div id="cy"></div>
     <div class="node-hint">CMD: TAP CLUSTER(COLLAPSE) | RIGHT-CLICK FILE(SECURITY)</div>
+    <div id="toast"></div>
 
     <script>
         let cy;
         let typingTimer;
         let currentAuthKey = "";
         let selectedNode = null;
+        let isCloud = false; // will be set from /status
+
+        // Detect cloud or local mode
+        fetch('/status').then(r => r.json()).then(d => {
+            isCloud = (d.mode === 'cloud');
+            document.getElementById('open-btn').textContent = isCloud ? 'VIEW FILE INFO' : 'REVEAL IN OS';
+        }).catch(() => {});
+
+        function showToast(msg, color) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.borderColor = color || 'var(--neon-blue)';
+            t.style.color = color || 'var(--neon-blue)';
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
 
         // Neural Flow Animation (Moving Pulse)
         function startNeuralFlow() {
             let offset = 0;
             setInterval(() => {
-                offset--; 
-                if (cy) {
-                    cy.edges().style('line-dash-offset', offset);
-                }
+                offset--;
+                if (cy) cy.edges().style('line-dash-offset', offset);
             }, 30);
         }
 
@@ -177,7 +287,7 @@
                 if (i < text.length) {
                     element.innerHTML = text.substring(0, i + 1) + '<span class="cursor"></span>';
                     i++;
-                    typingTimer = setTimeout(type, 20);
+                    typingTimer = setTimeout(type, 18);
                 } else {
                     element.innerHTML = text;
                 }
@@ -194,20 +304,41 @@
                     container: document.getElementById('cy'),
                     elements: elements,
                     style: [
-                        { selector: 'node', style: { 'background-color': 'data(color)', 'label': 'data(label)', 'color': '#8892b0', 'font-family': 'Rajdhani', 'font-size': '10px', 'text-valign': 'bottom', 'text-margin-y': '6px', 'width': 22, 'height': 22, 'border-width': 2, 'border-color': '#020b16' } },
+                        {
+                            selector: 'node',
+                            style: {
+                                'background-color': 'data(color)',
+                                'label': 'data(label)',
+                                'color': '#8892b0',
+                                'font-family': 'Rajdhani',
+                                'font-size': '10px',
+                                'text-valign': 'bottom',
+                                'text-margin-y': '6px',
+                                'width': 22, 'height': 22,
+                                'border-width': 2,
+                                'border-color': '#020b16'
+                            }
+                        },
                         { selector: 'node[type="root"]', style: { 'width': 45, 'height': 45, 'color': '#fff' } },
                         { selector: 'node[type="folder"]', style: { 'shape': 'diamond', 'width': 30, 'height': 30 } },
-                        { selector: 'edge', style: { 
-                            'width': 1.5, 'line-color': 'rgba(0, 210, 255, 0.3)', 'curve-style': 'bezier', 
-                            'target-arrow-shape': 'triangle', 'target-arrow-color': 'rgba(0, 210, 255, 0.3)',
-                            'line-dash-pattern': [6, 3], 'line-dash-offset': 0
-                        } }
+                        {
+                            selector: 'edge',
+                            style: {
+                                'width': 1.5,
+                                'line-color': 'rgba(0, 210, 255, 0.3)',
+                                'curve-style': 'bezier',
+                                'target-arrow-shape': 'triangle',
+                                'target-arrow-color': 'rgba(0, 210, 255, 0.3)',
+                                'line-dash-pattern': [6, 3],
+                                'line-dash-offset': 0
+                            }
+                        }
                     ],
                     layout: { name: 'cose', animate: true, nodeRepulsion: 7000, padding: 50 }
                 });
 
-                // --- RIGHT-CLICK HANDLER ---
-                cy.on('cxttap', 'node[type="file"]', function(evt){
+                // Right-click context menu
+                cy.on('cxttap', 'node[type="file"]', function(evt) {
                     selectedNode = evt.target;
                     const menu = document.getElementById('context-menu');
                     menu.style.display = 'block';
@@ -219,14 +350,15 @@
                     document.getElementById('context-menu').style.display = 'none';
                 });
 
-                // --- LEFT-CLICK HANDLER ---
-                cy.on('tap', 'node', function(evt){
+                // Left-click: show sidebar
+                cy.on('tap', 'node', function(evt) {
                     const node = evt.target;
+
                     if (node.data('locked')) {
                         const pass = prompt("ENCRYPTION KEY REQUIRED FOR NODE: " + node.data('id'));
                         if (pass !== node.data('password')) {
                             alert("ACCESS DENIED: AUTHENTICATION FAILURE");
-                            return; 
+                            return;
                         }
                         currentAuthKey = pass;
                     } else {
@@ -237,72 +369,139 @@
                     sidebar.classList.add('active');
                     document.getElementById('side-title').innerText = node.data('label').split('] ').pop().toUpperCase();
                     document.getElementById('side-type').innerText = node.data('type').toUpperCase();
-                    
-                    // Fixed Metadata Display
                     document.getElementById('side-path').innerText = node.data('path') || 'VIRTUAL_NODE';
                     document.getElementById('side-meta').innerText = node.data('created') || 'N/A';
-                    
+
                     const summary = node.data('summary') || "No semantic content detected.";
                     typeWriter(summary, 'side-summary');
 
-                    document.getElementById('open-btn').onclick = () => {
-                        if(node.data('type') === 'file') {
-                            fetch(`/open-folder/${node.data('id')}?password=${currentAuthKey}`);
-                        }
-                    };
+                    const openBtn = document.getElementById('open-btn');
+                    const dlBtn = document.getElementById('download-btn');
+
+                    if (node.data('type') === 'file') {
+                        dlBtn.style.display = 'block';
+                        openBtn.style.display = 'block';
+
+                        openBtn.onclick = () => {
+                            if (isCloud) {
+                                showToast('DOWNLOADING FILE...', 'var(--neon-green)');
+                                window.location.href = `/download/${node.data('id')}?password=${currentAuthKey}`;
+                            } else {
+                                fetch(`/open-folder/${node.data('id')}?password=${currentAuthKey}`)
+                                    .then(r => r.json())
+                                    .then(d => showToast(d.status === 'success' ? 'EXPLORER OPENED' : d.message, d.status === 'success' ? 'var(--neon-green)' : 'var(--neon-red)'));
+                            }
+                        };
+
+                        dlBtn.onclick = () => {
+                            showToast('INITIATING DOWNLOAD...', 'var(--neon-green)');
+                            window.location.href = `/download/${node.data('id')}?password=${currentAuthKey}`;
+                        };
+                    } else {
+                        dlBtn.style.display = 'none';
+                    }
+
                     cy.animate({ center: { eles: node }, zoom: 1.4 }, { duration: 600 });
                 });
 
-                cy.on('tap', 'node[type="folder"]', function(evt){
+                // Folder collapse/expand
+                cy.on('tap', 'node[type="folder"]', function(evt) {
                     const node = evt.target;
                     const connected = node.connectedEdges().connectedNodes().filter('node[type="file"]');
                     if (connected.visible()) connected.hide(); else connected.show();
                 });
 
+                // Search
                 document.getElementById('search').addEventListener('input', (e) => {
                     const val = e.target.value.toLowerCase();
-                    cy.nodes().forEach(n => n.style('opacity', n.data('label').toLowerCase().includes(val) ? 1 : 0.1));
+                    cy.nodes().forEach(n => n.style('opacity', n.data('label').toLowerCase().includes(val) ? 1 : 0.15));
                 });
-            } catch (err) { console.error("Neural Data Error:", err); }
+
+            } catch (err) {
+                console.error("Neural Data Error:", err);
+            }
         }
 
-        // --- DYNAMIC SECURITY ACTIONS ---
+        // ─── UPLOAD LOGIC ───
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            handleUpload(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => handleUpload(e.target.files));
+
+        async function handleUpload(files) {
+            if (!files || files.length === 0) return;
+
+            const status = document.getElementById('upload-status');
+            status.innerHTML = '<div class="status-dot pulse"></div> NEURAL SCAN INITIATED...';
+
+            const formData = new FormData();
+            for (const file of files) formData.append('files', file);
+
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.status === 'processing') {
+                    status.innerHTML = `<div class="status-dot pulse"></div> PROCESSING ${data.files.length} NODE(S) — GRAPH UPDATING...`;
+                    showToast(`UPLOADED: ${data.files.join(', ')}`, 'var(--neon-green)');
+                    // Poll for graph update
+                    setTimeout(() => {
+                        status.innerHTML = `<div class="status-dot" style="background:var(--neon-green)"></div> SYNC COMPLETE`;
+                        refreshGraph();
+                    }, 8000);
+                } else {
+                    status.innerHTML = `<div class="status-dot" style="background:var(--neon-red)"></div> ${data.message || 'UPLOAD FAILED'}`;
+                    showToast('UPLOAD FAILED', 'var(--neon-red)');
+                }
+            } catch (e) {
+                status.innerHTML = `<div class="status-dot" style="background:var(--neon-red)"></div> CONNECTION ERROR`;
+            }
+        }
+
+        // ─── SECURITY ACTIONS ───
         document.getElementById('menu-lock').onclick = async () => {
             const pass = prompt("CREATE SECURITY PASSWORD FOR: " + selectedNode.id());
             if (pass) {
                 const res = await fetch('/lock-node', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ filename: selectedNode.id(), password: pass })
                 });
                 if (res.ok) {
                     document.getElementById('context-menu').style.display = 'none';
-                    location.reload(); // Force instant UI sync with backend registry
+                    showToast('NODE LOCKED — NEURAL HANDSHAKE ACTIVE', 'var(--neon-red)');
+                    setTimeout(() => location.reload(), 1500);
                 }
             }
         };
 
-// Handle "Remove Privacy" logic
-document.getElementById('menu-unlock').onclick = async () => {
-    const pass = prompt("ENTER CURRENT PASSWORD TO REMOVE PRIVACY:");
-    if (pass) {
-        const res = await fetch('/unlock-node', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ filename: selectedNode.id(), password: pass })
-        });
-        
-        if (res.ok) {
-            document.getElementById('context-menu').style.display = 'none';
-            // FORCE REFRESH: This forces the UI to fetch the updated green status
-            location.reload(); 
-        } else {
-            alert("INVALID PASSWORD: ACCESS DENIED");
-        }
-    }
-};
+        document.getElementById('menu-unlock').onclick = async () => {
+            const pass = prompt("ENTER CURRENT PASSWORD TO REMOVE PRIVACY:");
+            if (pass) {
+                const res = await fetch('/unlock-node', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: selectedNode.id(), password: pass })
+                });
+                if (res.ok) {
+                    document.getElementById('context-menu').style.display = 'none';
+                    showToast('NODE UNLOCKED — ACCESS GRANTED', 'var(--neon-green)');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('INVALID PASSWORD: ACCESS DENIED', 'var(--neon-red)');
+                }
+            }
+        };
 
-        setInterval(async () => {
+        // ─── AUTO-REFRESH GRAPH ───
+        async function refreshGraph() {
             try {
                 const res = await fetch('/graph_data.json');
                 const data = await res.json();
@@ -310,8 +509,10 @@ document.getElementById('menu-unlock').onclick = async () => {
                     cy.json(data);
                     cy.layout({ name: 'cose', animate: true }).run();
                 }
-            } catch (e) { }
-        }, 10000);
+            } catch (e) {}
+        }
+
+        setInterval(refreshGraph, 10000);
 
         window.onload = () => {
             initGraph();
